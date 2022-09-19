@@ -88,20 +88,6 @@ export const conversationsApi = apiSlice.injectEndpoints({
       }),
       // task 1
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
-        const addConversationResult = dispatch(
-          apiSlice.util.updateQueryData(
-            'getConversations',
-            arg.sender,
-            (draft) => {
-              draft.data.unshift({
-                ...arg.data,
-                ...arg.data.users,
-                id: draft.data.length + 1,
-              });
-            }
-          )
-        );
-
         try {
           const conversation = await queryFulfilled;
           if (conversation?.data?.id) {
@@ -121,9 +107,47 @@ export const conversationsApi = apiSlice.injectEndpoints({
                 timestamp: arg.data.timestamp,
               })
             );
+
+            //new code
+
+            const res = await dispatch(
+              messagesApi.endpoints.addMessage.initiate({
+                conversationId: conversation?.data?.id,
+                sender: senderUser,
+                receiver: receiverUser,
+                message: arg.data.message,
+                timestamp: arg.data.timestamp,
+              })
+            ).unwrap();
+
+            // task 1 finish
+            // update messages cache pessimistically start
+            dispatch(
+              apiSlice.util.updateQueryData(
+                'getMessages',
+                res.conversationId.toString(),
+                (draft) => {
+                  draft.push(res);
+                }
+              )
+            );
+
+            dispatch(
+              apiSlice.util.updateQueryData(
+                'getConversations',
+                arg.sender,
+                (draft) => {
+                  draft.data.unshift({
+                    ...arg.data,
+                    ...arg.data.users,
+                    id: res.conversationId,
+                  });
+                }
+              )
+            );
           }
         } catch (error) {
-          addConversationResult.undo();
+          console.log(error);
         }
       },
     }),

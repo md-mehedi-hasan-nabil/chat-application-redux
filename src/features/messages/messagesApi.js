@@ -27,7 +27,7 @@ export const messagesApi = apiSlice.injectEndpoints({
 
         try {
           const messages = await queryFulfilled;
-          console.log(messages);
+          // console.log(messages);
         } catch (error) {
           addMessageResult.undo();
           console.log(error);
